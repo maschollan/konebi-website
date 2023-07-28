@@ -1,12 +1,12 @@
 <template>
     <div class="grid grid-cols-4 gap-4 p-4 pb-6 mt-3 overflow-y-scroll bg-white rounded-xl">
         <div class="col-span-4 md:col-span-2">
-            <div class="text-lg font-medium text-orange-600">Berat :</div>
-            <apexchart :options="chartOptions" :series="series" class="md:col-span-3 lg:col-span-6"></apexchart>
+            <div class="text-lg font-medium text-orange-600" @click="log">Berat :</div>
+            <apexchart :options="chartOptions" :series="series_berat" class="md:col-span-3 lg:col-span-6"></apexchart>
         </div>
         <div class="col-span-4 md:col-span-2">
             <div class="text-lg font-medium text-orange-600">Jumlah :</div>
-            <apexchart :options="chartOptions" :series="series" class="md:col-span-3 lg:col-span-6"></apexchart>
+            <apexchart :options="chartOptions" :series="series_jumlah" class="md:col-span-3 lg:col-span-6"></apexchart>
         </div>
     </div>
 </template>
@@ -21,21 +21,76 @@ export default {
     },
     data() {
         return {
-            series: [
-                {
-                    name: "Udang Jenis 1",
-                    data: [31, 40, 28, 51, 42, 67, 90],
-                },
-                {
-                    name: "Udang Jenis 2",
-                    data: [11, 32, 45, 32, 34, 52, 41],
-                },
-                {
-                    name: "Udang Jenis 3",
-                    data: [16, 9, 21, 18, 29, 36, 32],
-                },
-            ],
-            chartOptions: {
+        };
+    },
+    props: {
+        laporans: {
+            type: Array,
+            required: true,
+        },
+    },
+    computed: {
+        transformdata() {
+            const combinedData = {};
+
+            this.laporans.map((item) => {
+                const beratValues = item.berat.split("|").map((val) => parseInt(val));
+                const jumlahValues = item.jumlah.split("|").map((val) => parseInt(val));
+
+                const date = item.created_at.split("T")[0];
+
+                if (!combinedData[date]) {
+                    combinedData[date] = {
+                        berat: [beratValues],
+                        jumlah: [jumlahValues],
+                    };
+                } else {
+                    combinedData[date].berat.push(beratValues);
+                    combinedData[date].jumlah.push(jumlahValues);
+                }
+            });
+
+            const summarizedData = Object.keys(combinedData).map((date) => {
+                const beratSum = Array(3).fill(0);
+                const jumlahSum = Array(3).fill(0);
+
+                combinedData[date].berat.forEach((beratValues) => {
+                    beratValues.forEach((val, index) => {
+                        beratSum[index] += val;
+                    });
+                });
+
+                combinedData[date].jumlah.forEach((jumlahValues) => {
+                    jumlahValues.forEach((val, index) => {
+                        jumlahSum[index] += val;
+                    });
+                });
+
+                return {
+                    created_at: date,
+                    berat: beratSum.join("|"),
+                    jumlah: jumlahSum.join("|"),
+                };
+            });
+
+            return summarizedData;
+        },
+
+        berat() {
+            const arr = this.transformdata.map((laporan) => laporan.berat.split("|"));
+            if (arr.length > 0) return arr[0].map((col, i) => arr.map((row) => row[i]));
+            return [[], [], []];
+        },
+        jumlah() {
+            const arr = this.transformdata.map((laporan) => laporan.jumlah.split("|"));
+            if (arr.length > 0) return arr[0].map((col, i) => arr.map((row) => row[i]));
+            return [[], [], []];
+        },
+        created_at() {
+            return this.transformdata.map((laporan) => laporan.created_at);
+        },
+        chartOptions() {
+            return {
                 chart: {
                     type: "bar",
                 },
@@ -47,15 +102,7 @@ export default {
                 },
                 xaxis: {
                     type: "datetime",
-                    categories: [
-                        "2022-01-19",
-                        "2022-02-20",
-                        "2022-03-21",
-                        "2022-04-22",
-                        "2022-05-23",
-                        "2022-06-24",
-                        "2022-07-25",
-                    ],
+                    categories: this.created_at,
                 },
                 legend: {
                     position: "right",
@@ -66,8 +113,33 @@ export default {
                         format: "dd MMMM yyyy",
                     },
                 },
-            },
-        };
+            };
+        },
+        series_berat() {
+            return this.berat.map((item, index) => {
+                return {
+                    name: `Udang Jenis ${index + 1}`,
+                    data: item,
+                };
+            });
+        },
+        series_jumlah() {
+            return this.jumlah.map((item, index) => {
+                return {
+                    name: `Udang Jenis ${index + 1}`,
+                    data: item,
+                };
+            });
+        },
+    },
+    mounted() {},
+    methods: {
+        log() {
+            console.log(this.laporans);
+            console.log(this.transformdata);
+            console.log(this.jumlah);
+            console.log(this.berat);
+        },
     },
 };
 </script>

@@ -1,5 +1,6 @@
 <template>
     <div class="grid grid-cols-6 gap-4 py-5 mt-5 overflow-y-scroll">
+        <div class="col-span-1"></div>
         <div class="flex items-center col-span-2">
             <div
                 class="text-lg font-medium w-[100px] h-[100px] border-[2px] border-white p-4 rounded-full group cursor-pointer"
@@ -7,7 +8,7 @@
                     'bg-green-500 hover:bg-green-600 border-white': powerKonveyor,
                     'border-gray-600 bg-gray-400 hover:bg-gray-300': !powerKonveyor,
                 }"
-                @click="powerKonveyor = !powerKonveyor"
+                @click="onPowerKonveyor"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +35,7 @@
                     'bg-green-500 hover:bg-green-600 border-white': powerPompa,
                     'border-gray-600 bg-gray-400 hover:bg-gray-300': !powerPompa,
                 }"
-                @click="powerPompa = !powerPompa"
+                @click="onPowerPompa"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -54,11 +55,12 @@
                 <div class="text-4xl font-bold">{{ powerPompa ? "ON" : "OFF" }}</div>
             </div>
         </div>
-        <div class="flex flex-col col-span-2 text-white">
+        <div class="col-span-1"></div>
+        <!-- <div class="flex flex-col col-span-2 text-white">
             <div class="text-lg font-semibold">Speed Konveyor</div>
             <div class="mb-5 text-4xl font-bold">{{ speed }}</div>
             
-        </div>
+        </div> -->
     </div>
 </template>
 
@@ -68,10 +70,26 @@ export default {
     data() {
         return {
             speed: 50,
-            powerKonveyor: true,
-            powerPompa: false,
         };
     },
-    methods: {},
+    props: {
+        powerKonveyor: {
+            type: Boolean,
+            required: true,
+        },
+        powerPompa: {
+            type: Boolean,
+            required: true,
+        },
+    },
+    emits: ["power-konveyor", "power-pompa"],
+    methods: {
+        onPowerKonveyor() {
+            this.$emit("power-konveyor");
+        },
+        onPowerPompa() {
+            this.$emit("power-pompa");
+        },
+    },
 };
 </script>

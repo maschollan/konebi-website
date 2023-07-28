@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-gradient-to-b from-[#EB997A] to-[#E15E2A] to-47% w-screen h-screen overflow-y-scroll">
+    <div class="bg-gradient-to-b from-[#EB997A] to-[#E15E2A] to-47% w-screen h-screen overflow-y-scroll pt-16">
         <div class="flex flex-col flex-wrap justify-center max-w-4xl p-4 m-auto lg:max-w-6xl xl:max-w-7xl">
             <div class="flex flex-wrap items-center justify-between">
                 <div class="flex flex-wrap items-center justify-center w-full sm:w-1/2 sm:justify-normal">
@@ -71,6 +71,7 @@
                         </div>
                         <div
                             class="flex items-center justify-center w-20 h-10 text-white transition rounded-full cursor-pointer hover:bg-orange-100"
+                            @click="saved"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -88,9 +89,55 @@
                 </div>
             </div>
 
-            <home-page v-show="tab == 'home'" />
-            <laporan-page v-show="tab == 'laporan'" />
-            <setting-page v-show="tab == 'setting'" />
+            <div class="items-center hidden p-4 my-4 text-green-800 rounded-lg bg-green-50" ref="alert">
+                <svg
+                    class="flex-shrink-0 w-4 h-4"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                >
+                    <path
+                        d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"
+                    />
+                </svg>
+                <span class="sr-only">Info</span>
+                <div class="ml-3 text-sm font-medium">
+                    <span class="font-semibold">INFOO</span> Data berhasil disimpan !!
+                </div>
+                <button
+                    type="button"
+                    class="ml-auto -mx-1.5 -my-1.5 bg-green-50 text-green-500 rounded-lg focus:ring-2 focus:ring-green-400 p-1.5 hover:bg-green-200 inline-flex items-center justify-center h-8 w-8"
+                    @click="hiddenAlert"
+                >
+                    <span class="sr-only">Close</span>
+                    <svg
+                        class="w-3 h-3"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 14 14"
+                    >
+                        <path
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                        />
+                    </svg>
+                </button>
+            </div>
+
+            <home-page v-show="tab == 'home'" :berat="berat" :jumlah="jumlah" :src="src" />
+            <laporan-page v-show="tab == 'laporan'" :laporans="laporans" />
+            <setting-page
+                v-show="tab == 'setting'"
+                @power-konveyor="powerKonveyor"
+                @power-pompa="powerPompa"
+                :powerKonveyor="konveyor"
+                :powerPompa="pompa"
+            />
 
             <div class="mt-4 font-semibold text-center text-white">Copyright © {{ year }} Godbless Team</div>
         </div>
@@ -98,6 +145,7 @@
 </template>
 
 <script>
+import mqtt from "mqtt/dist/mqtt";
 import HomePage from "./components/HomePage.vue";
 import LaporanPage from "./components/LaporanPage.vue";
 import SettingPage from "./components/SettingPage.vue";
@@ -113,14 +161,137 @@ export default {
         return {
             year: new Date().getFullYear(),
             tab: "home",
+            client: null,
+            clientImage: null,
+            topicKamera: "topic/kamera",
+            topicSaveddata: "topic/saveddata",
+            topicGetBerat: "topic/get/berat",
+            topicGetJumlah: "topic/get/jumlah",
+            topicBerat: "topic/berat",
+            topicJumlah: "topic/jumlah",
+            topicKonveyor: "topic/konveyor",
+            topicPompa: "topic/pompa",
+            topicGetKonveyor: "topic/get/konveyor",
+            topicGetPompa: "topic/get/pompa",
+            src: "",
+            berat: [0, 0, 0],
+            jumlah: [0, 0, 0],
+            pompa: false,
+            konveyor: false,
+            laporans: [],
         };
     },
+
     methods: {
         randomNumber(min, max) {
             return Math.floor(Math.random() * (max - min + 1) + min);
         },
+        hiddenAlert() {
+            this.$refs.alert.classList.remove("flex");
+            this.$refs.alert.classList.add("hidden");
+        },
+        async getLaporans() {
+            try {
+                const resp = await this.$axios.get("http://13.228.44.216:3030/laporan");
+                this.laporans = resp.data;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        powerKonveyor() {
+            this.client.publish(this.topicKonveyor, this.konveyor ? "off" : "on");
+        },
+        powerPompa() {
+            this.client.publish(this.topicPompa, this.pompa ? "off" : "on");
+        },
+        async saved() {
+            try {
+                const resp = await this.$axios.post("http://13.228.44.216:3030/laporan", {
+                    berat: this.berat.join("|"),
+                    jumlah: this.jumlah.join("|"),
+                    created_at: new Date().toISOString(),
+                });
+                if (resp.status == 201) {
+                    this.client.publish(this.topicSaveddata, "");
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        },
     },
-    mounted() {},
+    mounted() {
+        this.getLaporans();
+
+        this.client = mqtt.connect("ws://13.228.44.216:8083/mqtt", {
+            clean: true,
+            connectTimeout: 4000,
+            clientId: "Browser" + this.randomNumber(1, 1000),
+        });
+
+        this.clientImage = mqtt.connect("ws://13.228.44.216:8083/mqtt", {
+            clean: true,
+            connectTimeout: 4000,
+            clientId: "Browser Image" + this.randomNumber(1, 1000),
+        });
+
+        this.client.on("connect", () => {
+            console.log("connected");
+            this.client.subscribe(this.topicSaveddata);
+            this.client.subscribe(this.topicBerat);
+            this.client.subscribe(this.topicJumlah);
+            this.client.subscribe(this.topicKonveyor);
+            this.client.subscribe(this.topicPompa);
+        });
+
+        this.clientImage.on("connect", () => {
+            console.log("connected Image");
+            this.clientImage.subscribe(this.topicKamera);
+        });
+
+        this.client.on("message", (topic, message) => {
+            if (topic == this.topicSaveddata) {
+                this.getLaporans();
+
+                this.$refs.alert.classList.remove("hidden");
+                this.$refs.alert.classList.add("flex");
+
+                this.client.publish(this.topicGetBerat, "");
+                this.client.publish(this.topicGetJumlah, "");
+
+                setTimeout(() => {
+                    this.$refs.alert.classList.remove("flex");
+                    this.$refs.alert.classList.add("hidden");
+                }, 5000);
+            }
+            if (topic == this.topicSaveddata) {
+                this.berat = [0, 0, 0];
+                this.jumlah = [0, 0, 0];
+            }
+            if (topic == this.topicBerat) {
+                this.berat = message.toString().split("|");
+            }
+            if (topic == this.topicJumlah) {
+                this.jumlah = message.toString().split("|");
+            }
+            if (topic == this.topicKonveyor) {
+                this.konveyor = message.toString() == "on" ? true : false;
+            }
+            if (topic == this.topicPompa) {
+                this.pompa = message.toString() == "on" ? true : false;
+            }
+        });
+
+        this.clientImage.on("message", (topic, message) => {
+            if (topic == this.topicKamera) {
+                this.src = "data:image/jpeg;base64," + message.toString();
+            }
+        });
+
+        setTimeout(() => {
+            this.client.publish(this.topicGetBerat, "");
+            this.client.publish(this.topicGetJumlah, "");
+        }, 100);
+    },
     computed: {},
 };
 </script>
