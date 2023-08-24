@@ -24,7 +24,7 @@
             <div class="text-lg font-medium text-orange-600">Live Kamera :</div>
             <!-- <video-player videoSrc="http://vjs.zencdn.net/v/oceans.mp4" class="mt-3 overflow-hidden rounded-xl" /> -->
             <img :src="src" v-show="src != ''" alt="live kamera" class="w-full h-auto mt-3 rounded-lg" />
-            <!-- <img src="../assets/deteksi.png" v-show="src == ''" alt="live kamera" class="w-full h-auto max-h-[320px] object-cover mt-3 rounded-lg" /> -->
+            <img src="/deteksi.png" v-show="src == ''" alt="live kamera" class="w-full h-auto max-h-[320px] object-cover mt-3 rounded-lg" />
         </div>
     </div>
 </template>

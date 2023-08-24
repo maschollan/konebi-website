@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-gradient-to-b from-[#EB997A] to-[#E15E2A] to-47% w-screen h-screen overflow-y-scroll pt-16">
+    <div class="bg-gradient-to-b from-[#EB997A] to-[#E15E2A] to-47% w-screen h-screen overflow-y-scroll pt-4">
         <div class="flex flex-col flex-wrap justify-center max-w-4xl p-4 m-auto lg:max-w-6xl xl:max-w-7xl">
             <div class="flex flex-wrap items-center justify-between">
                 <div class="flex flex-wrap items-center justify-center w-full sm:w-1/2 sm:justify-normal">
@@ -174,8 +174,8 @@ export default {
             topicGetKonveyor: "topic/get/konveyor",
             topicGetPompa: "topic/get/pompa",
             src: "",
-            berat: [0, 0, 0],
-            jumlah: [0, 0, 0],
+            berat: [103, 98, 112],
+            jumlah: [12, 3, 2],
             pompa: false,
             konveyor: false,
             laporans: [],
